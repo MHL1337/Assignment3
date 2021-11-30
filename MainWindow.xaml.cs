@@ -288,37 +288,64 @@ namespace Assignment3
         // Get a list of all cities that have cinemas in them.
         private IEnumerable<string> GetCities()
         {
-            string sql = @"
-                SELECT DISTINCT City
-                FROM Cinemas
-                ORDER BY City";
-            using var command = new SqlCommand(sql, connection);
-            using var reader = command.ExecuteReader();
-            var cities = new List<string>();
-            while (reader.Read())
+            using (database = new AppDbContext())
             {
-                cities.Add(Convert.ToString(reader["City"]));
+                var temp = new List<string>();
+                foreach (var item in database.cinemas)
+                {
+                    temp.Add(item.City);
+                }
+
+                var cities = temp.Distinct();
+                return cities;
             }
-            return cities;
+               
+            
+            //string sql = @"
+            //    SELECT DISTINCT City
+            //    FROM Cinemas
+            //    ORDER BY City";
+            //using var command = new SqlCommand(sql, connection);
+            //using var reader = command.ExecuteReader();
+            //var cities = new List<string>();
+            //while (reader.Read())
+            //{
+            //    cities.Add(Convert.ToString(reader["City"]));
+            //}
         }
 
         // Get a list of all cinemas in the currently selected city.
         private IEnumerable<string> GetCinemasInSelectedCity()
         {
-            string sql = @"
-                SELECT * FROM Cinemas
-                WHERE City = @City
-                ORDER BY Name";
-            using var command = new SqlCommand(sql, connection);
-            string currentCity = (string)cityComboBox.SelectedItem;
-            command.Parameters.AddWithValue("@City", currentCity);
-            using var reader = command.ExecuteReader();
-            var cinemas = new List<string>();
-            while (reader.Read())
+            using (database = new AppDbContext())
             {
-                cinemas.Add(Convert.ToString(reader["Name"]));
+                string currentCity = (string)cityComboBox.SelectedItem;
+                var cinemas = new List<string>();
+                foreach(var item in database.cinemas)
+                {
+                    if(item.City == currentCity)
+                    {
+                        cinemas.Add(item.Name);
+                    }
+                }
+                
+                return cinemas;
             }
-            return cinemas;
+
+            //    string sql = @"
+            //    SELECT * FROM Cinemas
+            //    WHERE City = @City
+            //    ORDER BY Name";
+            //using var command = new SqlCommand(sql, connection);
+            //string currentCity = (string)cityComboBox.SelectedItem;
+            //command.Parameters.AddWithValue("@City", currentCity);
+            //using var reader = command.ExecuteReader();
+            //var cinemas = new List<string>();
+            //while (reader.Read())
+            //{
+            //    cinemas.Add(Convert.ToString(reader["Name"]));
+            //}
+            
         }
 
         // Update the GUI with the cinemas in the currently selected city.
@@ -438,28 +465,20 @@ namespace Assignment3
 
                 foreach(var item in database.tickets)
                 {
-                    TicketList.Add(item);
-                }
-
-                foreach(var item2 in TicketList)
-                {
-                    if(item2.Screening.ScreeningID == TicketItem.Screening.ScreeningID)
+                    TicketList.Add(item); //Checks if we already have a ticket for this screening
+                    if(item.Screening == TicketItem.Screening)
                     {
                         count = 1;
-                        MessageBox.Show("You already have a ticket for this Screening");
+                        MessageBox.Show("You already Have a ticket");
                     }
+
                 }
-
-
-
-                    //den här koden funkar
-                    if (count == 0)
+                    if (count == 0) //If we dont we add the ticket
                     {
                         database.tickets.Add(TicketItem);
                         database.SaveChanges();
                     }
-                TicketItem = null;
-                TicketList.Clear();
+                
                 UpdateTicketList();
             }
 
