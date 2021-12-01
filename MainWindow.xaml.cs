@@ -434,7 +434,6 @@ namespace Assignment3
                     if (item.Screenings == TicketItem.Screenings)
                     {
                         count = 1;
-                        MessageBox.Show("You already Have a ticket");
                     }
 
                 }
