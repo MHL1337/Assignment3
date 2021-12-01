@@ -60,9 +60,7 @@ namespace Assignment3
         public int MovieID { get; set; }
         [ForeignKey("MovieID")]
         public Movies Movies { get; set; }
-
     }
-
 
     public class Movies
     {
@@ -602,83 +600,104 @@ namespace Assignment3
         // Update the GUI with the latest list of tickets
         private void UpdateTicketList()
         {
-            ticketPanel.Children.Clear();
-
-            string sql = @"
-                SELECT * FROM Tickets
-                JOIN Screenings ON Tickets.ScreeningID = Screenings.ID
-                JOIN Movies ON Screenings.MovieID = Movies.ID
-                JOIN Cinemas ON Screenings.CinemaID = Cinemas.ID
-                ORDER BY Tickets.TimePurchased";
-            using var command = new SqlCommand(sql, connection);
-            using var reader = command.ExecuteReader();
-
-            // For each ticket:
-            while (reader.Read())
+            using (database = new AppDbContext())
             {
-                // Create the button that will show all the info about the ticket and let us remove it.
-                var button = new Button
+                ticketPanel.Children.Clear();
+
+                List<Tickets> ticketList = new List<Tickets>();
+                foreach (var item in from t in database.tickets
+                                     join s in database.screenings on t.ScreeningID equals s.ID
+                                     join m in database.movies on s.MovieID equals m.ID
+                                     join c in database.cinemas on s.CinemaID equals c.ID
+                                     orderby t.TimePurchased
+                                     select t)
                 {
-                    Background = Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
-                    Padding = spacing,
-                    Cursor = Cursors.Hand,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch
-                };
-                ticketPanel.Children.Add(button);
-                int ticketID = Convert.ToInt32(reader["ID"]);
+                    ticketList.Add(item);
+                }
 
-                // When we click a ticket, remove it and update the GUI with the latest list of tickets.
-                button.Click += (sender, e) =>
+                //string sql = @"
+                //SELECT * FROM Tickets
+                //JOIN Screenings ON Tickets.ScreeningID = Screenings.ID
+                //JOIN Movies ON Screenings.MovieID = Movies.ID
+                //JOIN Cinemas ON Screenings.CinemaID = Cinemas.ID
+                //ORDER BY Tickets.TimePurchased";
+                //using var command = new SqlCommand(sql, connection);
+                //using var reader = command.ExecuteReader();
+
+
+                // For each ticket:
+                //while (reader.Read())
+                for (int i = 0; i < ticketList.Count; i++)
                 {
-                    RemoveTicket(ticketID);
-                };
+                    // Create the button that will show all the info about the ticket and let us remove it.
+                    var button = new Button
+                    {
+                        Background = Brushes.Transparent,
+                        BorderThickness = new Thickness(0),
+                        Padding = spacing,
+                        Cursor = Cursors.Hand,
+                        HorizontalContentAlignment = HorizontalAlignment.Stretch
+                    };
+                    ticketPanel.Children.Add(button);
+                    int ticketID = Convert.ToInt32(ticketList[i].ID);
 
-                // The rest of this method is just creating the GUI element for the screening.
-                var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new ColumnDefinition());
-                grid.RowDefinitions.Add(new RowDefinition());
-                grid.RowDefinitions.Add(new RowDefinition());
-                button.Content = grid;
+                    // When we click a ticket, remove it and update the GUI with the latest list of tickets.
+                    button.Click += (sender, e) =>
+                    {
+                        RemoveTicket(ticketID);
+                    };
 
-                var image = CreateImage(@"Posters\" + reader["PosterPath"]);
-                image.Width = 30;
-                image.Margin = spacing;
-                image.ToolTip = new ToolTip { Content = reader["Title"] };
-                AddToGrid(grid, image, 0, 0);
-                Grid.SetRowSpan(image, 2);
+                    // The rest of this method is just creating the GUI element for the screening.
+                    var grid = new Grid();
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    grid.ColumnDefinitions.Add(new ColumnDefinition());
+                    grid.RowDefinitions.Add(new RowDefinition());
+                    grid.RowDefinitions.Add(new RowDefinition());
+                    button.Content = grid;
 
-                var titleHeading = new TextBlock
-                {
-                    Text = Convert.ToString(reader["Title"]),
-                    Margin = spacing,
-                    FontFamily = mainFont,
-                    FontSize = 14,
-                    Foreground = Brushes.White,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                };
-                AddToGrid(grid, titleHeading, 0, 1);
+                    var screeningId = ticketList[i].ScreeningID;
+                    var movieId = database.screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
+                    var posterPath = database.movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
+                    var title = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
+                    var timeVariable = database.screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
+                    var nameVariable = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();  //----------------FEL!FEL!!-------------------------
 
-                var time = (TimeSpan)reader["Time"];
-                string timeString = TimeSpanToString(time);
-                var timeAndCinemaHeading = new TextBlock
-                {
-                    Text = timeString + " - " + reader["Name"],
-                    Margin = spacing,
-                    FontFamily = new FontFamily("Corbel"),
-                    FontSize = 12,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brushes.Yellow,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                };
-                AddToGrid(grid, timeAndCinemaHeading, 1, 1);
+                    var image = CreateImage(@"Posters\" + posterPath);
+                    image.Width = 30;
+                    image.Margin = spacing;
+                    image.ToolTip = new ToolTip { Content = title };
+                    AddToGrid(grid, image, 0, 0);
+                    Grid.SetRowSpan(image, 2);
+
+                    var titleHeading = new TextBlock
+                    {
+                        Text = Convert.ToString(title),
+                        Margin = spacing,
+                        FontFamily = mainFont,
+                        FontSize = 14,
+                        Foreground = Brushes.White,
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    };
+                    AddToGrid(grid, titleHeading, 0, 1);
+
+                    var time = (TimeSpan)timeVariable;
+                    string timeString = TimeSpanToString(time);
+                    var timeAndCinemaHeading = new TextBlock
+                    {
+                        Text = timeString + " - " + nameVariable,
+                        Margin = spacing,
+                        FontFamily = new FontFamily("Corbel"),
+                        FontSize = 12,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = Brushes.Yellow,
+                        TextTrimming = TextTrimming.CharacterEllipsis
+                    };
+                    AddToGrid(grid, timeAndCinemaHeading, 1, 1);
+                }
             }
         }
 
         // Remove the ticket for the specified screening and update the GUI with the latest list of tickets.
-
-
 
         public void RemoveTicket(int ticketID)
         {
@@ -736,4 +755,3 @@ namespace Assignment3
         }
     }
 }
-
