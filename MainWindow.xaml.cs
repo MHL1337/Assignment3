@@ -555,10 +555,6 @@ namespace Assignment3
                 Tickets ticketObject = TicketList.First(x => x.ID == ticketID);
                 database.tickets.Remove(ticketObject);
                 database.SaveChanges();
-                //string deleteSql = "DELETE FROM Tickets WHERE ID = @TicketID";
-                //var command = new SqlCommand(deleteSql, connection);
-                //command.Parameters.AddWithValue("@TicketID", ticketID);
-                //command.ExecuteNonQuery();
 
                 UpdateTicketList();
             }
