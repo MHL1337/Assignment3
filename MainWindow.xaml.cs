@@ -657,10 +657,11 @@ namespace Assignment3
 
                     var screeningId = ticketList[i].ScreeningID;
                     var movieId = database.screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
+                    var cinemaId = database.screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
                     var posterPath = database.movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
                     var title = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
                     var timeVariable = database.screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
-                    var nameVariable = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();  //----------------FEL!FEL!!-------------------------
+                    var nameVariable = database.cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
 
                     var image = CreateImage(@"Posters\" + posterPath);
                     image.Width = 30;
