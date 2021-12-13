@@ -325,16 +325,16 @@ namespace Assignment3
                 var screeningList = database.Screenings
                     .Include(s => s.Movies)
                     .Include(s => s.Cinemas)
-                    .Where(s => s.Cinemas.Name == cinema).ToList();
+                    .Where(s => s.Cinemas.Name == cinema)
+                    .OrderBy(s => s.Time)
+                    .ToList();
 
                 foreach (var screening in screeningList)
                 {
-                    var movieId = screening.MovieID;
-                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var releasedate = database.Movies.Where(m => m.ID == movieId).Select(m => m.ReleaseDate).FirstOrDefault();
-                    var runTime = database.Movies.Where(m => m.ID == movieId).Select(m => m.Runtime).FirstOrDefault();
-
+                    var posterPath = screening.Movies.PosterPath.ToString();
+                    var title = screening.Movies.Title.ToString();
+                    var releasedate = screening.Movies.ReleaseDate;
+                    var runTime = screening.Movies.Runtime;
 
                     // Create the button that will show all the info about the screening and let us buy a ticket for it.
                     var button = new Button
@@ -417,15 +417,23 @@ namespace Assignment3
             {
                 var TicketItem = new Ticket { TimePurchased = DateTime.Now };
                 TicketItem.Screenings = database.Screenings.First(s => s.ID == screeningID);
-                var TicketList = database.Tickets.ToList();
+                List<Ticket> TicketList = new List<Ticket>();
+                int count = 0;
 
-                if(TicketList.Where(sc => sc.Screenings.ID == screeningID).FirstOrDefault() == null)
+                foreach (var item in database.Tickets)
+                {
+                    TicketList.Add(item); //Checks if we already have a ticket for this screening
+                    if (item.Screenings == TicketItem.Screenings)
+                    {
+                        count = 1;
+                    }
+                }
+                if (count == 0) //If we dont have, we add the ticket
                 {
                     database.Tickets.Add(TicketItem);
                     database.SaveChanges();
                 }
 
-                TicketList.Clear();
                 UpdateTicketList();
             }
         }
@@ -442,17 +450,18 @@ namespace Assignment3
                    .ThenInclude(s => s.Cinemas)
                    .Include(t => t.Screenings)
                    .ThenInclude(s => s.Movies)
+                   .OrderBy(t => t.Screenings.Time)
                    .ToList();
 
                 foreach (var ticket in ticketList)
                 {
                     var screeningId = ticket.ScreeningID;
-                    var movieId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
-                    var cinemaId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
-                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var timeVariable = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
-                    var nameVariable = database.Cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
+                    var movieId = ticket.Screenings.MovieID.ToString();
+                    var cinemaId = ticket.Screenings.CinemaID.ToString();
+                    var posterPath = ticket.Screenings.Movies.PosterPath.ToString();
+                    var title = ticket.Screenings.Movies.Title.ToString();
+                    var timeVariable = ticket.Screenings.Time;
+                    var nameVariable = ticket.Screenings.Cinemas.Name.ToString();
 
                     // Create the button that will show all the info about the ticket and let us remove it.
                     var button = new Button
@@ -521,7 +530,15 @@ namespace Assignment3
         {
             using (database = new AppDbContext())
             {
-                var ticketObject = database.Tickets.FirstOrDefault(t => t.ID == ticketID);
+                List<Ticket> TicketList = new List<Ticket>();
+
+                foreach (var ticket in database.Tickets)
+                {
+                    TicketList.Add(ticket);
+                }
+
+
+                Ticket ticketObject = TicketList.First(x => x.ID == ticketID);
                 database.Tickets.Remove(ticketObject);
                 database.SaveChanges();
 
