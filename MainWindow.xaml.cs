@@ -455,9 +455,6 @@ namespace Assignment3
 
                 foreach (var ticket in ticketList)
                 {
-                    var screeningId = ticket.ScreeningID;
-                    var movieId = ticket.Screenings.MovieID.ToString();
-                    var cinemaId = ticket.Screenings.CinemaID.ToString();
                     var posterPath = ticket.Screenings.Movies.PosterPath.ToString();
                     var title = ticket.Screenings.Movies.Title.ToString();
                     var timeVariable = ticket.Screenings.Time;
