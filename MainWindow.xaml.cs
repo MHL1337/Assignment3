@@ -320,23 +320,22 @@ namespace Assignment3
                     return;
                 }
 
-
                 string cinema = (string)cinemaListBox.SelectedItem;
 
-                List<Screening> screeningList = new List<Screening>();
-                foreach (var item in from s in database.Screenings
-                                     join c in database.Cinemas on s.CinemaID equals c.ID
-                                     join m in database.Movies on s.MovieID equals m.ID
-                                     where c.Name == cinema
-                                     orderby s.Time
-                                     select s)
+                var screeningList = database.Screenings
+                    .Include(s => s.Movies)
+                    .Include(s => s.Cinemas)
+                    .Where(s => s.Cinemas.Name == cinema).ToList();
+
+                foreach (var screening in screeningList)
                 {
-                    screeningList.Add(item);
-                }
+                    var movieId = screening.MovieID;
+                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
+                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
+                    var releasedate = database.Movies.Where(m => m.ID == movieId).Select(m => m.ReleaseDate).FirstOrDefault();
+                    var runTime = database.Movies.Where(m => m.ID == movieId).Select(m => m.Runtime).FirstOrDefault();
 
 
-                for (int i = 0; i < screeningList.Count; i++)
-                {
                     // Create the button that will show all the info about the screening and let us buy a ticket for it.
                     var button = new Button
                     {
@@ -347,7 +346,7 @@ namespace Assignment3
                         HorizontalContentAlignment = HorizontalAlignment.Stretch
                     };
                     screeningPanel.Children.Add(button);
-                    int screeningID = screeningList[i].ID;
+                    int screeningID = screening.ID;
 
                     // When we click a screening, buy a ticket for it and update the GUI with the latest list of tickets.
                     button.Click += (sender, e) =>
@@ -364,12 +363,6 @@ namespace Assignment3
                     grid.RowDefinitions.Add(new RowDefinition());
                     button.Content = grid;
 
-                    var movieId = screeningList[i].MovieID;
-                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var releasedate = database.Movies.Where(m => m.ID == movieId).Select(m => m.ReleaseDate).FirstOrDefault();
-                    var runTime = database.Movies.Where(m => m.ID == movieId).Select(m => m.Runtime).FirstOrDefault();
-
                     var image = CreateImage(@"Posters\" + posterPath);
                     image.Width = 50;
                     image.Margin = spacing;
@@ -377,7 +370,8 @@ namespace Assignment3
                     AddToGrid(grid, image, 0, 0);
                     Grid.SetRowSpan(image, 3);
 
-                    var time = (TimeSpan)screeningList[i].Time;
+                    //var time = (TimeSpan)screeningList[i].Time;
+                    var time = (TimeSpan)screening.Time;
                     var timeHeading = new TextBlock
                     {
                         Text = TimeSpanToString(time),
@@ -433,7 +427,6 @@ namespace Assignment3
                     {
                         count = 1;
                     }
-
                 }
                 if (count == 0) //If we dont have, we add the ticket
                 {
@@ -452,20 +445,23 @@ namespace Assignment3
             {
                 ticketPanel.Children.Clear();
 
-                List<Ticket> ticketList = new List<Ticket>();
-                foreach (var item in from t in database.Tickets
-                                     join s in database.Screenings on t.ScreeningID equals s.ID
-                                     join m in database.Movies on s.MovieID equals m.ID
-                                     join c in database.Cinemas on s.CinemaID equals c.ID
-                                     orderby t.TimePurchased
-                                     select t)
-                {
-                    ticketList.Add(item);
-                }
+                var ticketList = database.Tickets
+                   .Include(t => t.Screenings)
+                   .ThenInclude(s => s.Cinemas)
+                   .Include(t => t.Screenings)
+                   .ThenInclude(s => s.Movies)
+                   .ToList();
 
-                // For each ticket:
-                for (int i = 0; i < ticketList.Count; i++)
+                foreach (var ticket in ticketList)
                 {
+                    var screeningId = ticket.ScreeningID;
+                    var movieId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
+                    var cinemaId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
+                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
+                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
+                    var timeVariable = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
+                    var nameVariable = database.Cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
+
                     // Create the button that will show all the info about the ticket and let us remove it.
                     var button = new Button
                     {
@@ -476,7 +472,7 @@ namespace Assignment3
                         HorizontalContentAlignment = HorizontalAlignment.Stretch
                     };
                     ticketPanel.Children.Add(button);
-                    int ticketID = Convert.ToInt32(ticketList[i].ID);
+                    int ticketID = Convert.ToInt32(ticket.ID);
 
                     // When we click a ticket, remove it and update the GUI with the latest list of tickets.
                     button.Click += (sender, e) =>
@@ -491,14 +487,6 @@ namespace Assignment3
                     grid.RowDefinitions.Add(new RowDefinition());
                     grid.RowDefinitions.Add(new RowDefinition());
                     button.Content = grid;
-
-                    var screeningId = ticketList[i].ScreeningID;
-                    var movieId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
-                    var cinemaId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
-                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var timeVariable = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
-                    var nameVariable = database.Cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
 
                     var image = CreateImage(@"Posters\" + posterPath);
                     image.Width = 30;
