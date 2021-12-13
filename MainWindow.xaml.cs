@@ -417,23 +417,15 @@ namespace Assignment3
             {
                 var TicketItem = new Ticket { TimePurchased = DateTime.Now };
                 TicketItem.Screenings = database.Screenings.First(s => s.ID == screeningID);
-                List<Ticket> TicketList = new List<Ticket>();
-                int count = 0;
+                var TicketList = database.Tickets.ToList();
 
-                foreach (var item in database.Tickets)
-                {
-                    TicketList.Add(item); //Checks if we already have a ticket for this screening
-                    if (item.Screenings == TicketItem.Screenings)
-                    {
-                        count = 1;
-                    }
-                }
-                if (count == 0) //If we dont have, we add the ticket
+                if(TicketList.Where(sc => sc.Screenings.ID == screeningID).FirstOrDefault() == null)
                 {
                     database.Tickets.Add(TicketItem);
                     database.SaveChanges();
                 }
 
+                TicketList.Clear();
                 UpdateTicketList();
             }
         }
@@ -529,15 +521,7 @@ namespace Assignment3
         {
             using (database = new AppDbContext())
             {
-                List<Ticket> TicketList = new List<Ticket>();
-
-                foreach (var ticket in database.Tickets)
-                {
-                    TicketList.Add(ticket);
-                }
-
-
-                Ticket ticketObject = TicketList.First(x => x.ID == ticketID);
+                var ticketObject = database.Tickets.FirstOrDefault(t => t.ID == ticketID);
                 database.Tickets.Remove(ticketObject);
                 database.SaveChanges();
 
