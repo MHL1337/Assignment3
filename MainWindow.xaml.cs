@@ -20,7 +20,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Assignment3
 {
-    public class Cinemas
+    [Table("Cinemas")]
+    [Index(nameof(Name), IsUnique = true)]
+    public class Cinema
     {
         public int ID { get; set; }
         [MaxLength(255)]
@@ -30,21 +32,23 @@ namespace Assignment3
         [Required]
         public string City { get; set; }
 
-        public List<Screenings> Screenings { get; set; }
+        public List<Screening> Screenings { get; set; }
     }
 
-    public class Tickets
+    [Table("Tickets")]
+    public class Ticket
     {
         public int ID { get; set; }
         [Required]
         public int ScreeningID { get; set; }
         [ForeignKey("ScreeningID")]
-        public Screenings Screenings { get; set; }
+        public Screening Screenings { get; set; }
         [Column(TypeName = "datetime")]
         public DateTime TimePurchased { get; set; }
     }
 
-    public class Screenings
+    [Table("Screenings")]
+    public class Screening
     {
         public int ID { get; set; }
         [Column(TypeName = "time(0)")]
@@ -53,15 +57,16 @@ namespace Assignment3
         [Required]
         public int CinemaID { get; set; }
         [ForeignKey("CinemaID")]
-        public Cinemas Cinemas { get; set; }
+        public Cinema Cinemas { get; set; }
 
         [Required]
         public int MovieID { get; set; }
         [ForeignKey("MovieID")]
-        public Movies Movies { get; set; }
+        public Movie Movies { get; set; }
     }
 
-    public class Movies
+    [Table("Movies")]
+    public class Movie
     {
         public int ID { get; set; }
         [Required]
@@ -74,7 +79,7 @@ namespace Assignment3
         [MaxLength(255)]
         public string PosterPath { get; set; }
 
-        public List<Screenings> Screenings { get; set; }
+        public List<Screening> Screenings { get; set; }
     }
 
 
@@ -99,17 +104,10 @@ namespace Assignment3
 
         public class AppDbContext : DbContext
         {
-            public DbSet<Movies> movies { get; set; }
-            public DbSet<Screenings> screenings { get; set; }
-            public DbSet<Tickets> tickets { get; set; }
-            public DbSet<Cinemas> cinemas { get; set; }
-
-            protected override void OnModelCreating(ModelBuilder builder)
-            {
-                builder.Entity<Cinemas>(entity => {
-                    entity.HasIndex(e => e.Name).IsUnique();
-                });
-            }
+            public DbSet<Movie> Movies { get; set; }
+            public DbSet<Screening> Screenings { get; set; }
+            public DbSet<Ticket> Tickets { get; set; }
+            public DbSet<Cinema> Cinemas { get; set; }
 
             protected override void OnConfiguring(DbContextOptionsBuilder options)
             {
@@ -275,7 +273,7 @@ namespace Assignment3
             using (database = new AppDbContext())
             {
                 List<string> cities = new List<string>();
-                cities = database.cinemas.Select(c => c.City).Distinct().ToList();
+                cities = database.Cinemas.Select(c => c.City).Distinct().ToList();
 
                 return cities;
             }
@@ -289,7 +287,7 @@ namespace Assignment3
             {
                 string currentCity = (string)cityComboBox.SelectedItem;
                 var cinemas = new List<string>();
-                foreach (var item in database.cinemas)
+                foreach (var item in database.Cinemas)
                 {
                     if (item.City == currentCity)
                     {
@@ -325,10 +323,10 @@ namespace Assignment3
 
                 string cinema = (string)cinemaListBox.SelectedItem;
 
-                List<Screenings> screeningList = new List<Screenings>();
-                foreach (var item in from s in database.screenings
-                                     join c in database.cinemas on s.CinemaID equals c.ID
-                                     join m in database.movies on s.MovieID equals m.ID
+                List<Screening> screeningList = new List<Screening>();
+                foreach (var item in from s in database.Screenings
+                                     join c in database.Cinemas on s.CinemaID equals c.ID
+                                     join m in database.Movies on s.MovieID equals m.ID
                                      where c.Name == cinema
                                      orderby s.Time
                                      select s)
@@ -367,10 +365,10 @@ namespace Assignment3
                     button.Content = grid;
 
                     var movieId = screeningList[i].MovieID;
-                    var posterPath = database.movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var releasedate = database.movies.Where(m => m.ID == movieId).Select(m => m.ReleaseDate).FirstOrDefault();
-                    var runTime = database.movies.Where(m => m.ID == movieId).Select(m => m.Runtime).FirstOrDefault();
+                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
+                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
+                    var releasedate = database.Movies.Where(m => m.ID == movieId).Select(m => m.ReleaseDate).FirstOrDefault();
+                    var runTime = database.Movies.Where(m => m.ID == movieId).Select(m => m.Runtime).FirstOrDefault();
 
                     var image = CreateImage(@"Posters\" + posterPath);
                     image.Width = 50;
@@ -423,12 +421,12 @@ namespace Assignment3
         {
             using (database = new AppDbContext())
             {
-                var TicketItem = new Tickets { TimePurchased = DateTime.Now };
-                TicketItem.Screenings = database.screenings.First(s => s.ID == screeningID);
-                List<Tickets> TicketList = new List<Tickets>();
+                var TicketItem = new Ticket { TimePurchased = DateTime.Now };
+                TicketItem.Screenings = database.Screenings.First(s => s.ID == screeningID);
+                List<Ticket> TicketList = new List<Ticket>();
                 int count = 0;
 
-                foreach (var item in database.tickets)
+                foreach (var item in database.Tickets)
                 {
                     TicketList.Add(item); //Checks if we already have a ticket for this screening
                     if (item.Screenings == TicketItem.Screenings)
@@ -439,7 +437,7 @@ namespace Assignment3
                 }
                 if (count == 0) //If we dont have, we add the ticket
                 {
-                    database.tickets.Add(TicketItem);
+                    database.Tickets.Add(TicketItem);
                     database.SaveChanges();
                 }
 
@@ -454,11 +452,11 @@ namespace Assignment3
             {
                 ticketPanel.Children.Clear();
 
-                List<Tickets> ticketList = new List<Tickets>();
-                foreach (var item in from t in database.tickets
-                                     join s in database.screenings on t.ScreeningID equals s.ID
-                                     join m in database.movies on s.MovieID equals m.ID
-                                     join c in database.cinemas on s.CinemaID equals c.ID
+                List<Ticket> ticketList = new List<Ticket>();
+                foreach (var item in from t in database.Tickets
+                                     join s in database.Screenings on t.ScreeningID equals s.ID
+                                     join m in database.Movies on s.MovieID equals m.ID
+                                     join c in database.Cinemas on s.CinemaID equals c.ID
                                      orderby t.TimePurchased
                                      select t)
                 {
@@ -495,12 +493,12 @@ namespace Assignment3
                     button.Content = grid;
 
                     var screeningId = ticketList[i].ScreeningID;
-                    var movieId = database.screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
-                    var cinemaId = database.screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
-                    var posterPath = database.movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
-                    var title = database.movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
-                    var timeVariable = database.screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
-                    var nameVariable = database.cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
+                    var movieId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.MovieID).FirstOrDefault();
+                    var cinemaId = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.CinemaID).FirstOrDefault();
+                    var posterPath = database.Movies.Where(m => m.ID == movieId).Select(m => m.PosterPath).FirstOrDefault();
+                    var title = database.Movies.Where(m => m.ID == movieId).Select(m => m.Title).FirstOrDefault();
+                    var timeVariable = database.Screenings.Where(s => s.ID == screeningId).Select(s => s.Time).FirstOrDefault();
+                    var nameVariable = database.Cinemas.Where(c => c.ID == cinemaId).Select(c => c.Name).FirstOrDefault();
 
                     var image = CreateImage(@"Posters\" + posterPath);
                     image.Width = 30;
@@ -543,16 +541,16 @@ namespace Assignment3
         {
             using (database = new AppDbContext())
             {
-                List<Tickets> TicketList = new List<Tickets>();
+                List<Ticket> TicketList = new List<Ticket>();
 
-                foreach (var ticket in database.tickets)
+                foreach (var ticket in database.Tickets)
                 {
                     TicketList.Add(ticket);
                 }
 
 
-                Tickets ticketObject = TicketList.First(x => x.ID == ticketID);
-                database.tickets.Remove(ticketObject);
+                Ticket ticketObject = TicketList.First(x => x.ID == ticketID);
+                database.Tickets.Remove(ticketObject);
                 database.SaveChanges();
 
                 UpdateTicketList();
