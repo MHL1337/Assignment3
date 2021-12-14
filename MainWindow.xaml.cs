@@ -281,20 +281,13 @@ namespace Assignment3
 
 
         // Get a list of all cinemas in the currently selected city.
-        private IEnumerable<string> GetCinemasInSelectedCity() //Skriv om
+        private IEnumerable<string> GetCinemasInSelectedCity() 
         {
             using (database = new AppDbContext())
             {
-                string currentCity = (string)cityComboBox.SelectedItem;
-                var cinemas = new List<string>();
-                foreach (var item in database.Cinemas)
-                {
-                    if (item.City == currentCity)
-                    {
-                        cinemas.Add(item.Name);
-                    }
-                }
-
+                currentCity = (string)cityComboBox.SelectedItem;
+                List<string> cinemas = new List<string>();
+                cinemas = database.Cinemas.Where(c => c.City == currentCity).Select(c => c.Name).OrderBy(c => c.Name).ToList();
                 return cinemas;
             }
         }
