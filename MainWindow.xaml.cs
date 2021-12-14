@@ -411,21 +411,19 @@ namespace Assignment3
         }
 
         // Buy a ticket for the specified screening and update the GUI with the latest list of tickets.
-        private void BuyTicket(int screeningID) //Skriv om
+        private void BuyTicket(int screeningID)
         {
             using (database = new AppDbContext())
             {
                 var TicketItem = new Ticket { TimePurchased = DateTime.Now };
                 TicketItem.Screenings = database.Screenings.First(s => s.ID == screeningID);
-                var TicketList = database.Tickets.ToList();
 
 
-                if (TicketList.Where(sc => sc.Screenings.ID == screeningID).FirstOrDefault() == null)
+                if (database.Tickets.Where(sc => sc.Screenings.ID == screeningID).FirstOrDefault() == null)
                 {
                     database.Tickets.Add(TicketItem);
                     database.SaveChanges();
                 }
-                TicketList.Clear();
                 UpdateTicketList();
             }
         }
